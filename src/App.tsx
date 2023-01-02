@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import produce from 'immer'
-import { randomID, sortBy } from './util'
+import { randomID, sortBy, reorderPatch } from './util'
 
 //POST API を呼び出し、新しい card の内容をデータベースに永続化
-import { api } from './api'
+import { api, ColumnID, CardID } from './api'
 
 //styled(_Header)のように書くことで、HTML要素に対応したコンポーネント（styled.div など）以外もスタイリングできます。
 import { Header as _Header } from './Header'
@@ -14,20 +14,20 @@ import { Overlay as _Overlay } from './Overlay'
 
 type State = {
   columns?: {
-    id: string
+    id: ColumnID
     title?: string
     text?: string
     cards?: {
-      id: string
+      id: CardID
       text?: string
     }[]
   }[]
-  cardsOrder: Record<string, string>
+  cardsOrder: Record<string, CardID | ColumnID>
 }
 
 export function App() {
   const [filterValue, setFilterValue] = useState('')
-  const [{ columns }, setData] = useState<State>({ cardsOrder: {} })
+  const [{ columns, cardsOrder }, setData] = useState<State>({ cardsOrder: {} })
 
   //画面の表示タイミングで APIを呼び出し
   useEffect(() => {
@@ -56,11 +56,11 @@ export function App() {
     })()
   }, [])
 
-  const [draggingCardID, setDraggingCardID] = useState<string | undefined>(
+  const [draggingCardID, setDraggingCardID] = useState<CardID | undefined>(
     undefined,
   )
 
-  const dropCardTo = (toID: string) => {
+  const dropCardTo = (toID: CardID | ColumnID) => {
     const fromID = draggingCardID
     if (!fromID) return
 
@@ -68,35 +68,27 @@ export function App() {
 
     if (fromID === toID) return
 
+    //cardsOrder の差分作成
+    const patch = reorderPatch(cardsOrder, fromID, toID)
+
     setData(
       produce((draft: State) => {
-        const card = draft.columns
-          ?.flatMap(col => col.cards ?? [])
-          .find(c => c.id === fromID)
-        if (!card) return
-
-        const fromColumn = draft.columns?.find(col =>
-          col.cards?.some(c => c.id === fromID),
-        )
-        if (!fromColumn?.cards) return
-
-        fromColumn.cards = fromColumn.cards.filter(c => c.id !== fromID)
-
-        const toColumn = draft.columns?.find(
-          col => col.id === toID || col.cards?.some(c => c.id === toID),
-        )
-        if (!toColumn?.cards) return
-
-        let index = toColumn.cards.findIndex(c => c.id === toID)
-        if (index < 0) {
-          index = toColumn.cards.length
+        draft.cardsOrder = {
+          ...draft.cardsOrder,
+          ...patch,
         }
-        toColumn.cards.splice(index, 0, card)
+
+        const unorderedCards = draft.columns?.flatMap(c => c.cards ?? []) ?? []
+        draft.columns?.forEach(column => {
+          column.cards = sortBy(unorderedCards, draft.cardsOrder, column.id)
+        })
       }),
     )
+
+    api('PATCH /v1/cardsOrder', patch)
   }
 
-  const setText = (columnID: string, value: string) => {
+  const setText = (columnID: ColumnID, value: string) => {
     setData(
       produce((draft: State) => {
         const column = draft.columns?.find(c => c.id === columnID)
@@ -107,23 +99,31 @@ export function App() {
     )
   }
 
-  const addCard = (columnID: string) => {
+  const addCard = (columnID: ColumnID) => {
     const column = columns?.find(c => c.id === columnID)
     if (!column) return
 
     const text = column.text
-    const cardID = randomID()
+    const cardID = randomID() as CardID
+
+    const patch = reorderPatch(cardsOrder, cardID, cardsOrder[columnID])
 
     setData(
       produce((draft: State) => {
+        //IDに該当する Columnが見つからないときに加え、column.cardsがundefinedのときも以降の処理をスキップ
         const column = draft.columns?.find(c => c.id === columnID)
-        if (!column) return
+        if (!column?.cards) return
 
-        column.cards?.unshift({
+        column.cards.unshift({
           id: cardID,
           text: column.text,
         })
         column.text = ''
+
+        draft.cardsOrder = {
+          ...draft.cardsOrder,
+          ...patch,
+        }
       }),
     )
 
@@ -131,9 +131,10 @@ export function App() {
       id: cardID,
       text,
     })
+    api('PATCH /v1/cardsOrder', patch)
   }
 
-  const [deletingCardID, setDeletingCardID] = useState<string | undefined>(
+  const [deletingCardID, setDeletingCardID] = useState<CardID | undefined>(
     undefined,
   )
   const deleteCard = () => {
