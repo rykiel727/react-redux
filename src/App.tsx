@@ -60,6 +60,7 @@ export function App() {
     undefined,
   )
 
+  //カードの移動処理
   const dropCardTo = (toID: CardID | ColumnID) => {
     const fromID = draggingCardID
     if (!fromID) return
@@ -99,6 +100,7 @@ export function App() {
     )
   }
 
+  //カードの追加処理
   const addCard = (columnID: ColumnID) => {
     const column = columns?.find(c => c.id === columnID)
     if (!column) return
@@ -134,6 +136,7 @@ export function App() {
     api('PATCH /v1/cardsOrder', patch)
   }
 
+  //カードの削除処理
   const [deletingCardID, setDeletingCardID] = useState<CardID | undefined>(
     undefined,
   )
@@ -143,16 +146,28 @@ export function App() {
 
     setDeletingCardID(undefined)
 
+    const patch = reorderPatch(cardsOrder, cardID)
+
     setData(
       produce((draft: State) => {
         const column = draft.columns?.find(col =>
           col.cards?.some(c => c.id === cardID),
         )
-        if (!column) return
+        if (!column?.cards) return
 
-        column.cards = column.cards?.filter(c => c.id !== cardID)
+        column.cards = column.cards.filter(c => c.id !== cardID)
+
+        draft.cardsOrder = {
+          ...draft.cardsOrder,
+          ...patch,
+        }
       }),
     )
+
+    api('DELETE /v1/cards', {
+      id: cardID,
+    })
+    api('PATCH /v1/cardsOrder', patch)
   }
 
   return (
