@@ -43,7 +43,7 @@ const CheckIcon = styled(_CheckIcon)`
   color: ${color.Green};
 `
 
-//attrs メソッドでデフォルトの属性を設定
+//attrs メソッドでデフォルトのpropsを設定
 //<DeleteButton /> が <button type="button"><TrashIcon /></button> と同じ意味になる
 const DeleteButton = styled.button.attrs({
   type: 'button',
