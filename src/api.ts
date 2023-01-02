@@ -5,6 +5,22 @@
 */
 
 export type ReqAndRes = {
+  'GET /v1/columns': {
+    req: null
+    res: {
+      id: string
+      title?: string
+    }[]
+  }
+
+  'GET /v1/cards': {
+    req: null
+    res: {
+      id: string
+      text?: string
+    }[]
+  }
+
   'POST /v1/cards': {
     req: {
       id: string
@@ -14,6 +30,11 @@ export type ReqAndRes = {
       id: string
       text?: string
     }
+  }
+
+  'GET /v1/cardsOrder': {
+    req: null
+    res: Record<string, string>
   }
 }
 
