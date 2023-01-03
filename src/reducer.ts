@@ -1,6 +1,6 @@
 import { Reducer } from 'redux'
 import produce from 'immer'
-import { sortBy } from './util'
+import { sortBy, reorderPatch } from './util'
 import { CardID, ColumnID } from './api'
 
 //アプリケーション全体の状態を規定
@@ -50,7 +50,20 @@ export type Action =
           text?: string
         }[]
         cardsOrder: Record<string, CardID | ColumnID | null>
+        deletingCardID?: CardID
       }
+    }
+  | {
+      type: 'Card.SetDeletingCard'
+      payload: {
+        cardID: CardID
+      }
+    }
+  | {
+      type: 'Dialog.ConfirmDelete'
+    }
+  | {
+      type: 'Dialog.CancelDelete'
     }
 
 export const reducer: Reducer<State, Action> = produce(
@@ -77,6 +90,43 @@ export const reducer: Reducer<State, Action> = produce(
         draft.columns?.forEach(column => {
           column.cards = sortBy(unorderedCards, cardsOrder, column.id)
         })
+        return
+      }
+
+      case 'Card.SetDeletingCard': {
+        const { cardID } = action.payload
+
+        draft.deletingCardID = cardID
+        return
+      }
+
+      case 'Dialog.ConfirmDelete': {
+        //削除対象の card の ID は state に持たせているので、action.payload がなくても値が取得できます
+        const cardID = draft.deletingCardID
+        if (!cardID) return
+
+        draft.deletingCardID = undefined
+
+        //削除対象の card を含む column を見つけています。
+        const column = draft.columns?.find(col =>
+          col.cards?.some(c => c.id === cardID),
+        )
+        if (!column?.cards) return
+
+        //削除対象の card を含まない card 配列を作って column.cards に代入
+        column.cards = column.cards.filter(c => c.id !== cardID)
+
+        //reorderPatch 関数を使って cardsOrder の整合性も保っています
+        const patch = reorderPatch(draft.cardsOrder, cardID)
+        draft.cardsOrder = {
+          ...draft.cardsOrder,
+          ...patch,
+        }
+        return
+      }
+
+      case 'Dialog.CancelDelete': {
+        draft.deletingCardID = undefined
         return
       }
 

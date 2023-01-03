@@ -42,6 +42,19 @@ export function App() {
   // TODO ビルドを通すためだけのスタブ実装なので、ちゃんとしたものにする
   const setData = fn => fn({ cardsOrder: {} })
 
+  const cardIsBeingDeleted = useSelector(state => Boolean(state.deletingCardID))
+  const setDeletingCardID = (cardID: CardID) =>
+    dispatch({
+      type: 'Card.SetDeletingCard',
+      payload: {
+        cardID,
+      },
+    })
+  const cancelDelete = () =>
+    dispatch({
+      type: 'Dialog.CancelDelete',
+    })
+
   //画面の表示タイミングで APIを呼び出し
   useEffect(() => {
     ;(async () => {
@@ -149,40 +162,6 @@ export function App() {
     api('PATCH /v1/cardsOrder', patch)
   }
 
-  //カードの削除処理
-  const [deletingCardID, setDeletingCardID] = useState<CardID | undefined>(
-    undefined,
-  )
-  const deleteCard = () => {
-    const cardID = deletingCardID
-    if (!cardID) return
-
-    setDeletingCardID(undefined)
-
-    const patch = reorderPatch(cardsOrder, cardID)
-
-    setData(
-      produce((draft: State) => {
-        const column = draft.columns?.find(col =>
-          col.cards?.some(c => c.id === cardID),
-        )
-        if (!column?.cards) return
-
-        column.cards = column.cards.filter(c => c.id !== cardID)
-
-        draft.cardsOrder = {
-          ...draft.cardsOrder,
-          ...patch,
-        }
-      }),
-    )
-
-    api('DELETE /v1/cards', {
-      id: cardID,
-    })
-    api('PATCH /v1/cardsOrder', patch)
-  }
-
   return (
     <Container>
       <Header filterValue={filterValue} onFilterChange={setFilterValue} />
@@ -210,12 +189,9 @@ export function App() {
         </HorizontalScroll>
       </MainArea>
 
-      {deletingCardID && (
-        <Overlay onClick={() => setDeletingCardID(undefined)}>
-          <DeleteDialog
-            onConfirm={deleteCard}
-            onCancel={() => setDeletingCardID(undefined)}
-          />
+      {cardIsBeingDeleted && (
+        <Overlay onClick={cancelDelete}>
+          <DeleteDialog />
         </Overlay>
       )}
     </Container>
