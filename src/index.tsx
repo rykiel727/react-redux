@@ -8,12 +8,12 @@ import { App } from './App'
 
 //ストアを生成
 const store = createStore(
-    reducer,
-    undefined,
-    process.env.NODE_ENV === 'development'
-      ? window.__REDUX_DEVTOOLS_EXTENSION__?.()
-      : undefined,
-  )
+  reducer,
+  undefined,
+  process.env.NODE_ENV === 'development'
+    ? window.__REDUX_DEVTOOLS_EXTENSION__?.()
+    : undefined,
+)
 
 ReactDOM.render(
   //子コンポーネントにストアを渡す

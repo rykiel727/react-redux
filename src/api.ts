@@ -1,8 +1,8 @@
 /**
-* 役割
-* 型によって制約をかける
-* JSON Server との通信に特化する
-*/
+ * 役割
+ * 型によって制約をかける
+ * JSON Server との通信に特化する
+ */
 
 export type ColumnID = string & { readonly brand: unique symbol }
 export type CardID = string & { readonly brand: unique symbol }
@@ -44,12 +44,12 @@ export type ReqAndRes = {
 
   'GET /v1/cardsOrder': {
     req: null
-    res: Record<string, CardID | ColumnID>
+    res: Record<string, CardID | ColumnID | null>
   }
 
   'PATCH /v1/cardsOrder': {
-    req: Record<string, CardID | ColumnID>
-    res: Record<string, CardID | ColumnID>
+    req: Record<string, CardID | ColumnID | null>
+    res: Record<string, CardID | ColumnID | null>
   }
 }
 

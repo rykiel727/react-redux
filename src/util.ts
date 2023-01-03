@@ -15,40 +15,40 @@ export function randomID() {
 }
 
 /**
-  * リストをリストの順序情報に従ってソートした新しいリストを返す
-  *
-  * @param list リスト
-  * @param order リストの順序情報
-  * @param head リストの先頭のキー
-  */
+ * リストをリストの順序情報に従ってソートした新しいリストを返す
+ *
+ * @param list リスト
+ * @param order リストの順序情報
+ * @param head リストの先頭のキー
+ */
 export function sortBy<
-E extends { id: Exclude<V, null> },
-V extends string | null
+  E extends { id: Exclude<V, null> },
+  V extends string | null,
 >(list: E[], order: Record<string, V>, head: Exclude<V, null>) {
-const map = list.reduce((m, e) => m.set(e.id, e), new Map<V, E>())
+  const map = list.reduce((m, e) => m.set(e.id, e), new Map<V, E>())
 
-const sorted: typeof list = []
+  const sorted: typeof list = []
 
-let id = order[head]
-for (let i = list.length; i > 0; i--) {
-  if (!id || id === head) break
+  let id = order[head]
+  for (let i = list.length; i > 0; i--) {
+    if (!id || id === head) break
 
-  const e = map.get(id)
-  if (e) sorted.push(e)
+    const e = map.get(id)
+    if (e) sorted.push(e)
 
-  id = order[id as Exclude<V, null>]
-}
+    id = order[id as Exclude<V, null>]
+  }
 
-return sorted
+  return sorted
 }
 
 /**
-* リストの順序情報を並べ替える PATCH リクエストのための情報を生成する
-*
-* @param order リストの順序情報
-* @param id 移動対象の ID
-* @param toID 移動先の ID
-*/
+ * リストの順序情報を並べ替える PATCH リクエストのための情報を生成する
+ *
+ * @param order リストの順序情報
+ * @param id 移動対象の ID
+ * @param toID 移動先の ID
+ */
 export function reorderPatch<V extends string | null>(
   order: Record<string, V>,
   id: Exclude<V, null>,

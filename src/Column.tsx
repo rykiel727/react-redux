@@ -61,7 +61,7 @@ export function Column({
   return (
     <Container>
       <Header>
-      {totalCount >= 0 && <CountBadge>{totalCount}</CountBadge>}
+        {totalCount >= 0 && <CountBadge>{totalCount}</CountBadge>}
         <ColumnName>{title}</ColumnName>
 
         <AddButton onClick={toggleInput} />
